@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="accent_teal">#26A69A</color>
+    <color name="blue">#0046FF</color>
+
+    <!-- Background Colors -->
+    <color name="background_color">#F8F9FA</color>
+    <color name="card_background">#FFFFFF</color>
+    <color name="input_background">#F5F5F5</color>
+
+    <color name="black">#000000</color>
+    <color name="gray_light">#F5F5F5</color>
+    <color name="gray_divider">#E0E0E0</color>
+    <color name="gray_text">#757575</color>
+    <color name="red">#FF3B30</color>
+
+    <!-- Text Colors -->
+    <color name="primary_text">#212121</color>
+    <color name="secondary_text">#757575</color>
+    <color name="text_on_primary">#FFFFFF</color>
+
+    <!-- Utility Colors -->
+    <color name="divider_color">#E0E0E0</color>
+    <color name="error_color">#F44336</color>
+    <color name="success_color">#4CAF50</color>
+    <color name="teacher">#e4007d</color>
+
+    <!-- Dark Theme Colors (Optional) -->
+    <color name="dark_background">#E2A16F</color>
+    <color name="dark_surface">#1E1E1E</color>
+    <color name="white">#FFFCFB</color>
+    <color name="dark_secondary_text">#B3B3B3</color>
+
+    <color name="blue_primary">#007BFF</color>
+    <color name="blue_primary_light">#B3D5FF</color>
+    <color name="purple_accent">#7D53EF</color>
+    <color name="dashed_blue">#D1D9F9</color>
+    <color name="purple_primary">#7D53EF</color>
+    <color name="green_badge">#28A745</color>
+    <color name="white_alpha_50">#80FFFFFF</color>
+    <color name="black_light">#333333</color>
+    <color name="yellow">#FFC50F</color>
+    <color name="profile_border_color">#FFBB86FC</color>
+
+</resources>
