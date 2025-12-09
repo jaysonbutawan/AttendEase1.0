@@ -3,6 +3,7 @@ package com.example.attendease.common.firebase
 import android.content.Context
 import android.content.Intent
 import android.provider.Settings
+import android.util.Log
 import androidx.credentials.CredentialManager
 import androidx.credentials.CustomCredential
 import androidx.credentials.GetCredentialRequest
@@ -14,6 +15,8 @@ import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.database.FirebaseDatabase
+import com.example.attendease.common.network.ApiClient
+import com.example.attendease.common.network.FirebaseUserRequest
 import kotlinx.coroutines.tasks.await
 
 class AuthRepository(
@@ -21,7 +24,7 @@ class AuthRepository(
 ) {
     private val database = FirebaseDatabase.getInstance().reference
 
-
+    // --- Google Sign In ---
     suspend fun signInWithGoogle(context: Context, role: String): Result<Unit> {
         val credentialManager = CredentialManager.create(context)
         val googleIdOption = GetGoogleIdOption.Builder()
@@ -48,18 +51,17 @@ class AuthRepository(
                 val authResult = firebaseAuth.signInWithCredential(authCredential).await()
                 val user = authResult.user ?: return Result.failure(Exception("User not found"))
                 val uid = user.uid
+                val email = user.email
 
+                // Save in Firebase Realtime Database
                 val userSnapshot = database.child("users").child(uid).get().await()
-                if (userSnapshot.exists()) {
-                    val storedRole = userSnapshot.child("role").getValue(String::class.java)
-                    if (storedRole != role) {
-                        firebaseAuth.signOut()
-                        return Result.failure(Exception("Access denied: account is for $storedRole only"))
-                    }
-                } else {
-                    val userData = mapOf("email" to user.email, "role" to role)
+                if (!userSnapshot.exists()) {
+                    val userData = mapOf("email" to email, "role" to role)
                     database.child("users").child(uid).setValue(userData).await()
                 }
+
+                // Sync with Laravel backend
+                syncWithLaravel(uid, email, role)
 
                 Result.success(Unit)
             } else {
@@ -77,7 +79,7 @@ class AuthRepository(
         }
     }
 
-
+    // --- Email Sign In ---
     suspend fun signInWithEmail(email: String, password: String, role: String): Result<Unit> {
         return try {
             val authResult = firebaseAuth.signInWithEmailAndPassword(email, password).await()
@@ -95,12 +97,17 @@ class AuthRepository(
                 return Result.failure(Exception("Access denied: this account is for $storedRole only"))
             }
 
+            // Sync with Laravel backend
+            val emailUser = authResult.user?.email
+            syncWithLaravel(uid, emailUser, role)
+
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
+    // --- Email Sign Up ---
     suspend fun signUpWithEmail(email: String, password: String, role: String): Result<Unit> {
         return try {
             if (email.isBlank() || password.isBlank()) {
@@ -110,22 +117,45 @@ class AuthRepository(
             for (userSnap in usersSnapshot.children) {
                 val existingEmail = userSnap.child("email").getValue(String::class.java)
                 val existingRole = userSnap.child("role").getValue(String::class.java)
-
                 if (existingEmail.equals(email, ignoreCase = true) && existingRole != role) {
                     return Result.failure(Exception("This email is already registered as a $existingRole"))
                 }
             }
+
             val result = firebaseAuth.createUserWithEmailAndPassword(email, password).await()
             val user = result.user ?: return Result.failure(Exception("User creation failed"))
-            val userData = mapOf(
-                "email" to email,
-                "role" to role
-            )
-            database.child("users").child(user.uid).setValue(userData).await()
+            val uid = user.uid
+
+            val userData = mapOf("email" to email, "role" to role)
+            database.child("users").child(uid).setValue(userData).await()
             user.sendEmailVerification().await()
+            syncWithLaravel(uid, email, role)
 
             Result.success(Unit)
         } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    private suspend fun syncWithLaravel(uid: String, email: String?, role: String): Result<Unit> {
+        val TAG = "SyncWithLaravel"
+        return try {
+            Log.d(TAG, "Sending user to Laravel: uid=$uid, email=$email, role=$role")
+
+            val request = FirebaseUserRequest(uid, email, role)
+            val response = ApiClient.instance.registerFirebaseUser(request)
+
+            Log.d(TAG, "Laravel response: success=${response.success}, user=${response.user}")
+
+            if (response.success) {
+                Log.d(TAG, "User successfully synced with Laravel")
+                Result.success(Unit)
+            } else {
+                Log.e(TAG, "Laravel registration failed: ${response.user}")
+                Result.failure(Exception("Laravel registration failed"))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error syncing with Laravel", e)
             Result.failure(e)
         }
     }
@@ -145,6 +175,4 @@ class AuthRepository(
             Result.failure(e)
         }
     }
-
-
 }

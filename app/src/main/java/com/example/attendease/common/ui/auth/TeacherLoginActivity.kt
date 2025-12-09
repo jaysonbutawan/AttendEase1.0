@@ -18,10 +18,11 @@ import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 
 class TeacherLoginActivity : AppCompatActivity() {
+
     private lateinit var binding: LoginScreenBinding
     private lateinit var repository: AuthRepository
-    private enum class AuthState {  SIGN_IN, SIGN_UP
-    }
+
+    private enum class AuthState { SIGN_IN, SIGN_UP }
     private var currentState = AuthState.SIGN_IN
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -30,21 +31,18 @@ class TeacherLoginActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         repository = AuthRepository(FirebaseAuth.getInstance())
+
         setupSegmentedControl()
-        binding.loginButton.setOnClickListener {
-            handleAuthAction()
-        }
-        binding.googleButton.setOnClickListener {
-            handleGoogleSignIn()
-        }
-        binding.tvChangeRole.setOnClickListener {
-            toggleRole()
-        }
+
+        binding.loginButton.setOnClickListener { handleAuthAction() }
+        binding.googleButton.setOnClickListener { handleGoogleSignIn() }
+        binding.tvChangeRole.setOnClickListener { toggleRole() }
+
         updateUIForState(AuthState.SIGN_IN)
     }
 
     private fun setupSegmentedControl() {
-        binding.toggleGroup.setOnCheckedChangeListener { group: RadioGroup, checkedId: Int ->
+        binding.toggleGroup.setOnCheckedChangeListener { _: RadioGroup, checkedId: Int ->
             when (checkedId) {
                 R.id.radio_sign_in -> updateUIForState(AuthState.SIGN_IN)
                 R.id.radio_sign_up -> updateUIForState(AuthState.SIGN_UP)
@@ -55,21 +53,16 @@ class TeacherLoginActivity : AppCompatActivity() {
     @SuppressLint("SetTextI18n")
     private fun updateUIForState(state: AuthState) {
         currentState = state
-        binding.credentialView.apply {
-            when (state) {
-                AuthState.SIGN_IN -> {
-                    binding.cardTitle.text = "Welcome Back!"
-                    binding.forgotPasswordText.visibility = View.VISIBLE
-                    binding.loginButton.text = getString(R.string.log_in)
-                }
-                AuthState.SIGN_UP -> {
-
-
-                    binding.cardTitle.text = "Create Account"
-                    binding.forgotPasswordText.visibility = View.GONE
-                    binding.loginButton.text = "Sign up"
-
-                }
+        when (state) {
+            AuthState.SIGN_IN -> {
+                binding.cardTitle.text = "Welcome Back!"
+                binding.forgotPasswordText.visibility = View.VISIBLE
+                binding.loginButton.text = getString(R.string.log_in)
+            }
+            AuthState.SIGN_UP -> {
+                binding.cardTitle.text = "Create Account"
+                binding.forgotPasswordText.visibility = View.GONE
+                binding.loginButton.text = "Sign Up"
             }
         }
     }
@@ -79,23 +72,18 @@ class TeacherLoginActivity : AppCompatActivity() {
         val password = binding.passwordEditText.text.toString().trim()
 
         if (email.isEmpty() || password.isEmpty()) {
-            AlertDialog.Builder(this@TeacherLoginActivity)
+            AlertDialog.Builder(this)
                 .setTitle("Login Failed")
                 .setMessage("Please enter email and password")
-                .setPositiveButton("OK") { dialog, _ ->
-                    dialog.dismiss()
-                }
+                .setPositiveButton("OK") { dialog, _ -> dialog.dismiss() }
                 .setCancelable(true)
                 .show()
             return
         }
 
-
         when (currentState) {
             AuthState.SIGN_IN -> signIn(email, password)
-            AuthState.SIGN_UP -> {
-                signUp(email, password)
-            }
+            AuthState.SIGN_UP -> signUp(email, password)
         }
     }
 
@@ -110,13 +98,11 @@ class TeacherLoginActivity : AppCompatActivity() {
                 Toast.makeText(this@TeacherLoginActivity, "Login Successful", Toast.LENGTH_SHORT).show()
                 startActivity(Intent(this@TeacherLoginActivity, MainNavigationActivity::class.java))
                 finish()
-            }.onFailure { e ->
+            }.onFailure { _ ->
                 AlertDialog.Builder(this@TeacherLoginActivity)
                     .setTitle("Login Failed")
-                    .setMessage("Your credentials is Invalid")
-                    .setPositiveButton("OK") { dialog, _ ->
-                        dialog.dismiss()
-                    }
+                    .setMessage("Invalid credentials")
+                    .setPositiveButton("OK") { dialog, _ -> dialog.dismiss() }
                     .setCancelable(true)
                     .show()
             }
@@ -128,8 +114,8 @@ class TeacherLoginActivity : AppCompatActivity() {
             showInvalidEmailDialog()
             return
         }
-        binding.progressBar.visibility = View.GONE
-        binding.loginButton.isEnabled = true
+        binding.progressBar.visibility = View.VISIBLE
+        binding.loginButton.isEnabled = false
         lifecycleScope.launch {
             val result = repository.signUpWithEmail(email, password, "teacher")
             binding.progressBar.visibility = View.GONE
@@ -137,41 +123,31 @@ class TeacherLoginActivity : AppCompatActivity() {
             result.onSuccess {
                 AlertDialog.Builder(this@TeacherLoginActivity)
                     .setTitle("Success")
-                    .setMessage("Your account successfully created")
-                    .setPositiveButton("OK") { dialog, _ ->
-                        dialog.dismiss()
-                    }
+                    .setMessage("Your account was successfully created")
+                    .setPositiveButton("OK") { dialog, _ -> dialog.dismiss() }
                     .setCancelable(true)
                     .show()
                 binding.toggleGroup.check(R.id.radio_sign_in)
                 updateUIForState(AuthState.SIGN_IN)
                 binding.passwordEditText.text?.clear()
             }.onFailure { e ->
-                AlertDialog.Builder(this@TeacherLoginActivity)
-                    .setTitle("Login Failed")
-                    .setMessage("Your credentials is Invalid")
-                    .setPositiveButton("OK") { dialog, _ ->
-                        dialog.dismiss()
-                    }
-                    .setCancelable(true)
-                    .show()
+                Toast.makeText(this@TeacherLoginActivity, "Signup failed: ${e.message}", Toast.LENGTH_LONG).show()
             }
         }
     }
+
     private fun showInvalidEmailDialog() {
         AlertDialog.Builder(this)
             .setTitle("Invalid Email")
             .setMessage("Please enter a valid email address before signing up.")
-            .setPositiveButton("OK") { dialog, _ ->
-                dialog.dismiss()
-            }
+            .setPositiveButton("OK") { dialog, _ -> dialog.dismiss() }
             .setCancelable(true)
             .show()
     }
 
     private fun handleGoogleSignIn() {
-        binding.progressBar.visibility = View.GONE
-        binding.loginButton.isEnabled = true
+        binding.progressBar.visibility = View.VISIBLE
+        binding.loginButton.isEnabled = false
         lifecycleScope.launch {
             val result = repository.signInWithGoogle(this@TeacherLoginActivity, "teacher")
             binding.progressBar.visibility = View.GONE
@@ -181,16 +157,12 @@ class TeacherLoginActivity : AppCompatActivity() {
                 startActivity(Intent(this@TeacherLoginActivity, MainNavigationActivity::class.java))
                 finish()
             }.onFailure { e ->
-                Toast.makeText(
-                    this@TeacherLoginActivity,
-                    "Google login failed: ${e.message}",
-                    Toast.LENGTH_LONG
-                ).show()
+                Toast.makeText(this@TeacherLoginActivity, "Google login failed: ${e.message}", Toast.LENGTH_LONG).show()
             }
         }
     }
 
     private fun toggleRole() {
-       startActivity(Intent(this, SplashActivity::class.java))
+        startActivity(Intent(this, SplashActivity::class.java))
     }
 }

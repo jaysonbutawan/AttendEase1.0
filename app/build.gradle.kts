@@ -102,4 +102,19 @@ dependencies {
     implementation("com.google.android.gms:play-services-maps:19.0.0")
     implementation("com.google.android.gms:play-services-location:21.3.0")
 
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+
+    // Credential Manager for Google Sign-In
+    implementation("androidx.credentials:credentials:1.2.2")
+    implementation("androidx.credentials:credentials-play-services-auth:1.2.2")
+    implementation("com.google.android.libraries.identity.googleid:googleid:1.1.0")
+
+    // Coroutines
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+// Gson Converter (for JSON)
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+// Kotlin Coroutines (required for suspend functions)
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
+
  }

@@ -52,24 +52,24 @@ class EditProfileBottomSheetActivity : BottomSheetDialogFragment() {
                 return@setOnClickListener
             }
 
-            val authRepository = AuthRepository(FirebaseAuth.getInstance())
-
-            lifecycleScope.launch {
-                val result = authRepository.updateUserFullName(newName)
-                if (result.isSuccess) {
-                            androidx.appcompat.app.AlertDialog.Builder(requireContext())
-                                .setTitle("Profile Updated")
-                                .setMessage("Profile changed successfully!")
-                                .setCancelable(false)
-                                .setPositiveButton("OK") { dialog, _ ->
-                                    dialog.dismiss()
-                                    dismiss()
-                                }
-                                .show()
-                } else {
-                    Toast.makeText(requireContext(), "Failed: ${result.exceptionOrNull()?.message}", Toast.LENGTH_SHORT).show()
-                }
-            }
+//            val authRepository = AuthRepository(FirebaseAuth.getInstance())
+//
+//            lifecycleScope.launch {
+//                val result = authRepository.updateUserFullName(newName)
+//                if (result.isSuccess) {
+//                            androidx.appcompat.app.AlertDialog.Builder(requireContext())
+//                                .setTitle("Profile Updated")
+//                                .setMessage("Profile changed successfully!")
+//                                .setCancelable(false)
+//                                .setPositiveButton("OK") { dialog, _ ->
+//                                    dialog.dismiss()
+//                                    dismiss()
+//                                }
+//                                .show()
+//                } else {
+//                    Toast.makeText(requireContext(), "Failed: ${result.exceptionOrNull()?.message}", Toast.LENGTH_SHORT).show()
+//                }
+//            }
         }
 
     }
