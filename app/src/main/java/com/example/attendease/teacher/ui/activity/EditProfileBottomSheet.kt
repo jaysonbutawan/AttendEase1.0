@@ -72,24 +72,24 @@ class EditProfileBottomSheet : BottomSheetDialogFragment() {
                 return@setOnClickListener
             }
 
-//            val authRepository = AuthRepository(FirebaseAuth.getInstance())
-//
-//            lifecycleScope.launch {
-//                val result = authRepository.updateUserFullName(newName)
-//                if (result.isSuccess) {
-//                    AlertDialog.Builder(requireContext())
-//                        .setTitle("Success")
-//                        .setMessage("Successfully updated")
-//                        .setPositiveButton("OK") { dialog, _ ->
-//                            dialog.dismiss()
-//                        }
-//                        .setCancelable(true)
-//                        .show()
-//                    dismiss()
-//                } else {
-//                    Toast.makeText(requireContext(), "Failed: ${result.exceptionOrNull()?.message}", Toast.LENGTH_SHORT).show()
-//                }
-//            }
+            val authRepository = AuthRepository(FirebaseAuth.getInstance())
+
+            lifecycleScope.launch {
+                val result = authRepository.updateUserFullName(newName)
+                if (result.isSuccess) {
+                    AlertDialog.Builder(requireContext())
+                        .setTitle("Success")
+                        .setMessage("Successfully updated")
+                        .setPositiveButton("OK") { dialog, _ ->
+                            dialog.dismiss()
+                        }
+                        .setCancelable(true)
+                        .show()
+                    dismiss()
+                } else {
+                    Toast.makeText(requireContext(), "Failed: ${result.exceptionOrNull()?.message}", Toast.LENGTH_SHORT).show()
+                }
+            }
         }
 
         binding.ivEditImage.setOnClickListener {
