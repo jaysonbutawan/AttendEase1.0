@@ -8,9 +8,9 @@ class StudentController {
 
     private val apiService = ApiClient.instance
 
-    suspend fun updateUserProfile(firebase_uid: String, firstName: String, lastName: String): Result<Unit> {
+    suspend fun updateUserProfile(firebase_uid: String, firstName: String, lastName: String, course_id: Int): Result<Unit> {
         return try {
-            val request = UserProfileRequest(firebase_uid,firstName, lastName)
+            val request = UserProfileRequest(firebase_uid,firstName, lastName,course_id)
             val response = apiService.updateProfile(request)
             if (response.isSuccessful && response.body()?.success == true) {
                 Result.success(Unit)

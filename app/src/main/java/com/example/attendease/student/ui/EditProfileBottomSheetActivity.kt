@@ -24,6 +24,7 @@ class EditProfileBottomSheetActivity : BottomSheetDialogFragment() {
     private var _binding: ActivityEditProfileBottomSheetBinding? = null
     private val binding get() = _binding!!
     private var name: String? = null
+    private var select: Course? = null
     private lateinit var studentController: StudentController
     private var coursesCache: List<Course> = emptyList()
     private lateinit var apiService: ApiService
@@ -83,8 +84,17 @@ class EditProfileBottomSheetActivity : BottomSheetDialogFragment() {
                 return@setOnClickListener
             }
             val uid = FirebaseAuth.getInstance().currentUser?.uid ?: ""
+
+
+            val course_id = select?.course_id
+            if (course_id == null) {
+                binding.userCourse.error = "Please select a course"
+                return@setOnClickListener
+            } else {
+                binding.userCourse.error = null
+            }
             lifecycleScope.launch {
-                val result = studentController.updateUserProfile(uid,firstName, lastName)
+                val result = studentController.updateUserProfile(uid,firstName, lastName,course_id)
                 if (result.isSuccess) {
 
                     parentFragmentManager.setFragmentResult(
@@ -134,8 +144,8 @@ class EditProfileBottomSheetActivity : BottomSheetDialogFragment() {
                     binding.courseDropdown.setAdapter(adapter)
 
                     binding.courseDropdown.setOnItemClickListener { _, _, position, _ ->
-                        val selected = coursesCache[position]
-                        // Use selected.id or selected.name as needed
+                         select = coursesCache[position]
+
                     }
 
                     binding.userCourse.helperText = null
