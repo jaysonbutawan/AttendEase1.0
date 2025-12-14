@@ -1,16 +1,23 @@
 package com.example.attendease.student.ui
 
+import com.example.attendease.R
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.lifecycle.lifecycleScope
 import com.example.attendease.common.controllers.StudentController
+import com.example.attendease.common.network.ApiClient
+import com.example.attendease.common.network.ApiService
+import com.example.attendease.common.network.model.Course
 import com.example.attendease.databinding.ActivityEditProfileBottomSheetBinding
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import kotlinx.coroutines.launch
 import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class EditProfileBottomSheetActivity : BottomSheetDialogFragment() {
 
@@ -18,6 +25,10 @@ class EditProfileBottomSheetActivity : BottomSheetDialogFragment() {
     private val binding get() = _binding!!
     private var name: String? = null
     private lateinit var studentController: StudentController
+    private var coursesCache: List<Course> = emptyList()
+    private lateinit var apiService: ApiService
+
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -25,6 +36,9 @@ class EditProfileBottomSheetActivity : BottomSheetDialogFragment() {
             name = it.getString("name")
         }
         studentController = StudentController()
+        apiService = ApiClient.instance
+
+
     }
 
     override fun onCreateView(
@@ -38,6 +52,8 @@ class EditProfileBottomSheetActivity : BottomSheetDialogFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        loadCourses(apiService)
+
         lifecycleScope.launch {
             val firebaseUid = FirebaseAuth.getInstance().currentUser!!.uid
 
@@ -47,10 +63,14 @@ class EditProfileBottomSheetActivity : BottomSheetDialogFragment() {
                 val student = result.getOrNull()
                 binding.etEditName.setText(student?.firstname)
                 binding.lastnameEditText.setText(student?.lastname)
+
             } else {
                 Toast.makeText(requireContext(), "Failed to load profile", Toast.LENGTH_SHORT).show()
             }
         }
+
+        binding.courseDropdown
+
 
 
         binding.btnSaveProfile.setOnClickListener {
@@ -89,6 +109,51 @@ class EditProfileBottomSheetActivity : BottomSheetDialogFragment() {
         }
 
     }
+
+    private fun loadCourses(apiService: ApiService) {
+        binding.userCourse.isEnabled = false
+        binding.userCourse.error = null
+        binding.userCourse.helperText = "Loading courses..."
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val response = withContext(Dispatchers.IO) {
+                    apiService.getCourses()
+                }
+
+                if (response.isSuccessful) {
+                    val courses = response.body()?.courses.orEmpty()
+                    coursesCache = courses
+
+                    val adapter = ArrayAdapter(
+                        requireContext(),
+                        android.R.layout.simple_list_item_1,
+                        courses.map { it.name }
+                    )
+
+                    binding.courseDropdown.setAdapter(adapter)
+
+                    binding.courseDropdown.setOnItemClickListener { _, _, position, _ ->
+                        val selected = coursesCache[position]
+                        // Use selected.id or selected.name as needed
+                    }
+
+                    binding.userCourse.helperText = null
+                    binding.userCourse.isEnabled = true
+                } else {
+                    binding.userCourse.isEnabled = true
+                    binding.userCourse.helperText = null
+                    binding.userCourse.error = "Failed to load courses (${response.code()})"
+                }
+
+            } catch (e: Exception) {
+                binding.userCourse.isEnabled = true
+                binding.userCourse.helperText = null
+                binding.userCourse.error = "Network error: ${e.message ?: "Unknown"}"
+            }
+        }
+    }
+
 
     override fun onDestroyView() {
         super.onDestroyView()
