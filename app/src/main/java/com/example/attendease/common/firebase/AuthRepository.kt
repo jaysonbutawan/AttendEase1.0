@@ -16,7 +16,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.database.FirebaseDatabase
 import com.example.attendease.common.network.ApiClient
-import com.example.attendease.common.network.FirebaseUserRequest
+import com.example.attendease.common.network.request.FirebaseUserRequest
 import kotlinx.coroutines.tasks.await
 
 class AuthRepository(
@@ -145,13 +145,11 @@ class AuthRepository(
             val request = FirebaseUserRequest(uid, email, role)
             val response = ApiClient.instance.registerFirebaseUser(request)
 
-            Log.d(TAG, "Laravel response: success=${response.success}, user=${response.user}")
 
             if (response.success) {
                 Log.d(TAG, "User successfully synced with Laravel")
                 Result.success(Unit)
             } else {
-                Log.e(TAG, "Laravel registration failed: ${response.user}")
                 Result.failure(Exception("Laravel registration failed"))
             }
         } catch (e: Exception) {

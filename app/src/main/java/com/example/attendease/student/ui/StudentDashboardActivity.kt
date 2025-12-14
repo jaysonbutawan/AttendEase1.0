@@ -7,8 +7,10 @@ import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.graphics.toColorInt
+import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
 import com.example.attendease.R
+import com.example.attendease.common.controllers.StudentController
 import com.example.attendease.databinding.StudentDashboardScreenBinding
 import com.example.attendease.student.helper.SessionHelper
 import com.example.attendease.student.helper.StudentValidator
@@ -30,6 +32,8 @@ class StudentDashboardActivity : AppCompatActivity() {
 
     private var userListener: ValueEventListener? = null
     private lateinit var databaseRef: DatabaseReference
+
+    private lateinit var studentController: StudentController
     var foundRoomName: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -37,6 +41,7 @@ class StudentDashboardActivity : AppCompatActivity() {
         binding = StudentDashboardScreenBinding.inflate(layoutInflater)
         enableEdgeToEdge()
         setContentView(binding.root)
+        studentController = StudentController()
 
         val currentUser = FirebaseAuth.getInstance().currentUser
         if (currentUser == null) {
@@ -44,10 +49,18 @@ class StudentDashboardActivity : AppCompatActivity() {
             finish()
             return
         }
+        setupUserListener()
 
         databaseRef = FirebaseDatabase.getInstance()
             .getReference("users")
             .child(currentUser.uid)
+
+        supportFragmentManager.setFragmentResultListener("profileUpdated", this) { _, _ ->
+            FirebaseAuth.getInstance().currentUser?.uid?.let {
+                setupUserListener()
+            }
+        }
+
 
         setupUserListener()
 
@@ -172,55 +185,36 @@ class StudentDashboardActivity : AppCompatActivity() {
 
     //for UI updates
     private fun setupUserListener() {
-        userListener = object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                if (isDestroyed || isFinishing) return
+        val currentUser = FirebaseAuth.getInstance().currentUser ?: return
+        val firebaseUid = currentUser.uid
 
-                val currentUser = FirebaseAuth.getInstance().currentUser ?: return
+        // Use lifecycleScope to call suspend function
+        lifecycleScope.launch {
+            val result = studentController.getUserProfile(firebaseUid)
 
-                val fullName = snapshot.child("fullname").getValue(String::class.java)
-                val course = snapshot.child("course").getValue(String::class.java)
-                var imageUrl = snapshot.child("profileImage").getValue(String::class.java)
+            if (result.isSuccess) {
+                val student = result.getOrNull()
 
-                var updated = false
+                val fullName = "${student?.firstname ?: "Unknown"} ${student?.lastname ?: ""}"
+                val course = student?.course_name ?: "No course assigned"
+                val imageUrl = currentUser.photoUrl?.toString() // Optional: use Google photo
 
-                if (fullName.isNullOrEmpty() && !currentUser.displayName.isNullOrEmpty()) {
-                    val googleName = currentUser.displayName!!
-                    databaseRef.child("fullname").setValue(googleName)
-                    updated = true
-                }
-
-                if (imageUrl.isNullOrEmpty() && currentUser.photoUrl != null) {
-                    val googlePhoto = currentUser.photoUrl.toString()
-                    databaseRef.child("profileImage").setValue(googlePhoto)
-                    imageUrl = googlePhoto
-                    updated = true
-                }
                 setupUserInfo(
-                    name = fullName ?: currentUser.displayName,
+                    name = fullName,
                     course = course,
-                    imageUrl = imageUrl ?: currentUser.photoUrl?.toString()
+                    imageUrl = imageUrl
                 )
-                if (updated) {
-                    Toast.makeText(
-                        this@StudentDashboardActivity,
-                        "Profile info synced from Google account",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-            }
 
-            override fun onCancelled(error: DatabaseError) {
+            } else {
                 Toast.makeText(
                     this@StudentDashboardActivity,
-                    "Failed to load user data: ${error.message}",
+                    "Failed to load profile: ${result.exceptionOrNull()?.message}",
                     Toast.LENGTH_SHORT
                 ).show()
             }
         }
-
-        databaseRef.addValueEventListener(userListener!!)
     }
+
 
     private fun setupUserInfo(name: String?, course: String?, imageUrl: String?) = with(binding) {
         userName.text = name ?: "Unknown Student"

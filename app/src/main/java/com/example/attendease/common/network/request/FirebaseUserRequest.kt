@@ -1,4 +1,4 @@
-package com.example.attendease.common.network
+package com.example.attendease.common.network.request
 
 data class FirebaseUserRequest(
     val uid: String,

@@ -1,4 +1,4 @@
-package com.example.attendease.common.network
+package com.example.attendease.common.network.reponse
 
 data class FirebaseUserResponse(
     val id: Int?,
