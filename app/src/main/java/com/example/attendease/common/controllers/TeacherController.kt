@@ -1,17 +1,17 @@
 package com.example.attendease.common.controllers
 
 import com.example.attendease.common.network.ApiClient
-import com.example.attendease.common.network.model.StudentData
-import com.example.attendease.common.network.request.StudentProfileRequest
+import com.example.attendease.common.network.model.TeacherData
+import com.example.attendease.common.network.request.TeacherProfileRequest
 
-class StudentController {
+class TeacherController {
 
     private val apiService = ApiClient.instance
 
-    suspend fun updateUserProfile(firebase_uid: String, firstName: String, lastName: String, course_id: Int): Result<Unit> {
+    suspend fun updateUserProfile(firebase_uid: String, firstName: String, lastName: String, contact_number: String): Result<Unit> {
         return try {
-            val request = StudentProfileRequest(firebase_uid,firstName, lastName,course_id)
-            val response = apiService.updateProfile(request)
+            val request = TeacherProfileRequest(firebase_uid,firstName, lastName,contact_number)
+            val response = apiService.teacherUpdateProfile(request)
             if (response.isSuccessful && response.body()?.success == true) {
                 Result.success(Unit)
             } else {
@@ -22,12 +22,12 @@ class StudentController {
         }
     }
 
-    suspend fun getUserProfile(firebaseUid: String): Result<StudentData> {
+    suspend fun getUserProfile(firebaseUid: String): Result<TeacherData> {
         return try {
 
             val request = mapOf("firebase_uid" to firebaseUid)
 
-            val response = ApiClient.instance.getProfile(request)
+            val response = ApiClient.instance.teacherProfile(request)
 
             if (response.isSuccessful && response.body()?.success == true) {
                 Result.success(response.body()!!.data!!)
@@ -39,5 +39,4 @@ class StudentController {
             Result.failure(e)
         }
     }
-
 }

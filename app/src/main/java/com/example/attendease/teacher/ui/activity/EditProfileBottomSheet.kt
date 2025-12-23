@@ -1,6 +1,7 @@
 package com.example.attendease.teacher.ui.activity
 
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -9,6 +10,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
 import com.example.attendease.R
+import com.example.attendease.common.controllers.TeacherController
 import com.example.attendease.common.firebase.AuthRepository
 import com.example.attendease.databinding.TeacherDialogEditProfileBinding
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
@@ -23,11 +25,14 @@ class EditProfileBottomSheet : BottomSheetDialogFragment() {
     private var name: String? = null
     private var image: String? = null
     private var email: String? = null
+    private lateinit var teacherController: TeacherController
 
     override fun getTheme(): Int = R.style.AppTheme_BottomSheetDialog
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        teacherController = TeacherController()
         arguments?.let {
             name = it.getString("name")
             email = it.getString("email")
@@ -45,7 +50,21 @@ class EditProfileBottomSheet : BottomSheetDialogFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        binding.etEditName.setText(name)
+        lifecycleScope.launch {
+            val firebaseUid = FirebaseAuth.getInstance().currentUser!!.uid
+
+            val result = teacherController.getUserProfile(firebaseUid)
+
+            if (result.isSuccess) {
+                val student = result.getOrNull()
+                binding.etFirstname.setText(student?.firstname)
+                binding.etLastname.setText(student?.lastname)
+                binding.etContactNumber.setText(student?.contact_number)
+
+            } else {
+                Toast.makeText(requireContext(), "Failed to load profile", Toast.LENGTH_SHORT).show()
+            }
+        }
 
         if (!image.isNullOrEmpty()) {
             Glide.with(requireContext())
@@ -58,9 +77,12 @@ class EditProfileBottomSheet : BottomSheetDialogFragment() {
         }
 
         binding.btnSaveProfile.setOnClickListener {
-            val newName = binding.etEditName.text.toString().trim()
+            val firstName = binding.etFirstname.text.toString().trim()
+            val lastName = binding.etLastname.text.toString().trim()
+            val contact_number = binding.etContactNumber.text.toString().trim()
+            val uid = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
-            if (newName.isEmpty()) {
+            if (firstName.isEmpty()) {
                 AlertDialog.Builder(requireContext())
                     .setTitle("Empty Field")
                     .setMessage("Please provide input before saving.")
@@ -72,20 +94,25 @@ class EditProfileBottomSheet : BottomSheetDialogFragment() {
                 return@setOnClickListener
             }
 
-            val authRepository = AuthRepository(FirebaseAuth.getInstance())
-
             lifecycleScope.launch {
-                val result = authRepository.updateUserFullName(newName)
+                val result = teacherController.updateUserProfile(uid,firstName, lastName,contact_number)
                 if (result.isSuccess) {
-                    AlertDialog.Builder(requireContext())
-                        .setTitle("Success")
-                        .setMessage("Successfully updated")
+                    Log.d("EditProfileBottomSheet", "Profile updated successfully + contac"+ contact_number)
+
+                    parentFragmentManager.setFragmentResult(
+                        "profileUpdated",
+                        Bundle.EMPTY
+                    )
+
+                    androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                        .setTitle("Profile Updated")
+                        .setMessage("Profile updated successfully!")
+                        .setCancelable(false)
                         .setPositiveButton("OK") { dialog, _ ->
                             dialog.dismiss()
+                            dismiss()
                         }
-                        .setCancelable(true)
                         .show()
-                    dismiss()
                 } else {
                     Toast.makeText(requireContext(), "Failed: ${result.exceptionOrNull()?.message}", Toast.LENGTH_SHORT).show()
                 }
